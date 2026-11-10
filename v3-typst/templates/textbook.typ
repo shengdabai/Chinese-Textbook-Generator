@@ -2,6 +2,8 @@
 #import "lib/vocab-table.typ": *
 
 #let accent = rgb(book-color)
+// Override with typst compile --input contact-email=contact@example.com.
+#let contact-email = sys.inputs.at("contact-email", default: "contact@example.com")
 
 #set document(
   title: book-title + " — " + book-subtitle,
@@ -131,7 +133,7 @@
     publisher, except in the case of brief quotations embodied in critical
     reviews and certain other noncommercial uses permitted by copyright law.\
     \
-    For permissions, contact: #link("mailto:tony@zturnsgo.com")[tony\@zturnsgo.com]
+    For permissions, contact: #link("mailto:" + contact-email, contact-email)
   ]
 ]
 

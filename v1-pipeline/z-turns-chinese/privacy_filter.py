@@ -104,7 +104,7 @@ def demo_privacy_filter():
     sample = """
     Today John Smith discussed his experience working at World Bank.
     His wife Mary lives at 123 Oak Street, Arlington.
-    Contact: john.smith@worldbank.org, 202-555-0147.
+    Contact: john.smith@example.com, 202-555-0147.
     He mentioned some government policies about education.
     The student wants to learn how to order food in Chinese.
     """

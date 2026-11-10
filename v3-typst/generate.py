@@ -13,7 +13,7 @@ sys.path.insert(0, str(BASE))
 
 from filters.content_filter import ContentFilter
 from parsers.md_parser import MarkdownParser
-from renderers.typst_renderer import TypstRenderer
+from renderers.typst_renderer import TypstRenderer, typst_string
 
 FILTER = ContentFilter(str(BASE / "config" / "filter_rules.yaml"))
 PARSER = MarkdownParser()
@@ -29,7 +29,7 @@ HSK_LEVELS = {
     "79": "大师 · Mastery",
 }
 
-V2_HSK_ROOT = Path("../v2-weasyprint/HSK备考")
+V2_HSK_ROOT = BASE.parent / "v2-weasyprint" / "HSK备考"
 HSK_OUTPUT_DIR = Path("output")
 
 # HSK levels where full-text Chinese annotation is applied (all paragraphs)
@@ -118,8 +118,8 @@ def build_hsk_typ(level: str, title: str) -> str:
     # HSK 79 → display as "7-9"
     display_level = "7-9" if level == "79" else level
 
-    return f"""#let hsk-level = "{display_level}"
-#let hsk-title = "{title}"
+    return f"""#let hsk-level = {typst_string(display_level)}
+#let hsk-title = {typst_string(title)}
 
 {template_src}
 
@@ -131,6 +131,7 @@ def compile_typ(typ_src: str, out_pdf: Path, tmp_name: str = "_build_tmp.typ") -
     """写入临时 .typ 文件到 templates/ 并编译，返回是否成功。"""
     import os
     import tempfile
+    out_pdf.parent.mkdir(parents=True, exist_ok=True)
     # Use a unique temp file per call to avoid race conditions in parallel builds
     fd, tmp_path = tempfile.mkstemp(suffix=".typ", dir=TEMPLATES)
     try:
@@ -187,10 +188,10 @@ def cmd_textbook(args):
     template_src = (TEMPLATES / "textbook.typ").read_text(encoding="utf-8")
     body = md_to_body(md_path, annotate=False)
 
-    typ_src = f"""#let book-number = "{number}"
-#let book-title = "{title}"
-#let book-subtitle = "{subtitle}"
-#let book-color = "{color}"
+    typ_src = f"""#let book-number = {typst_string(number)}
+#let book-title = {typst_string(title)}
+#let book-subtitle = {typst_string(subtitle)}
+#let book-color = {typst_string(color)}
 
 {template_src}
 
@@ -222,8 +223,8 @@ def cmd_validate(args):
     title = HSK_LEVELS.get(level, f"HSK {level}")
     template_src = (TEMPLATES / "hsk-prep.typ").read_text(encoding="utf-8")
     body = md_to_body(md_path)
-    typ_src = f"""#let hsk-level = "{level}"
-#let hsk-title = "{title}"
+    typ_src = f"""#let hsk-level = {typst_string(level)}
+#let hsk-title = {typst_string(title)}
 
 {template_src}
 

@@ -5,6 +5,13 @@ from pypinyin import Style
 from pypinyin import pinyin as get_pinyin
 
 
+def typst_string(text: str) -> str:
+    """Quote data for a Typst string, including control characters."""
+    text = text.replace("\\", "\\\\").replace('"', '\\"')
+    text = re.sub(r"[\x00-\x1f]", lambda m: f"\\u{{{ord(m.group()):x}}}", text)
+    return f'"{text}"'
+
+
 class TypstRenderer:
     # render() sets this per call; the default lets render_node() be used on
     # its own (no pinyin annotation), as the tests do.
@@ -19,7 +26,7 @@ class TypstRenderer:
 
         if t == NodeType.HEADING:
             prefix = "=" * node["level"]
-            return f"{prefix} {node['text']}\n"
+            return f"{prefix} {self._escape(node['text'])}\n"
 
         if t == NodeType.PARAGRAPH:
             return f"{self._inline(node['text'])}\n\n"
@@ -75,7 +82,9 @@ class TypstRenderer:
         if t == NodeType.CODE_BLOCK:
             lang = node.get("lang", "")
             code = node["code"]
-            return f"```{lang}\n{code}\n```\n\n"
+            # A Markdown code line can contain an inline Typst closing fence.
+            # Use string arguments so neither code nor language can become syntax.
+            return f"#raw({typst_string(code)}, block: true, lang: {typst_string(lang)})\n\n"
 
         if t == NodeType.BLOCKQUOTE:
             return f"#quote[{self._inline(node['text'])}]\n\n"
@@ -87,10 +96,8 @@ class TypstRenderer:
 
     def _escape(self, text: str) -> str:
         """转义 Typst 特殊字符（在 content 块内）。"""
-        text = text.replace("\\", "\\\\")
-        text = text.replace("#", r"\#")
-        text = text.replace("[", r"\[")
-        text = text.replace("]", r"\]")
+        # Escape mode switches, references and comments as well as content delimiters.
+        text = re.sub(r"([\\#\[\]$`*_<>@/])", r"\\\1", text)
         # Curly/smart quotes are invalid in Typst code context — normalize to straight
         text = text.replace("\u2018", "'").replace("\u2019", "'")
         text = text.replace("\u201c", '"').replace("\u201d", '"')

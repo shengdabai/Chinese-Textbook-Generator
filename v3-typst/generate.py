@@ -137,8 +137,10 @@ def compile_typ(typ_src: str, out_pdf: Path, tmp_name: str = "_build_tmp.typ") -
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             f.write(typ_src)
+        # Same copyright-page contact source as create_kdp_series_b01_b10.py.
+        contact = os.environ.get("TEXTBOOK_CONTACT_EMAIL", "contact@example.com")
         result = subprocess.run(
-            ["typst", "compile", tmp_path, str(out_pdf)],
+            ["typst", "compile", tmp_path, str(out_pdf), "--input", f"contact-email={contact}"],
             capture_output=True, text=True,
         )
         if result.stderr.strip():

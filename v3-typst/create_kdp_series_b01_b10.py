@@ -6,11 +6,16 @@ This script:
 2. Generates a planning markdown file.
 3. Expands each book into 12 chapters.
 4. Compiles each book to PDF in a trim size closer to Amazon/KDP (6x9).
+
+Set --contact-email or TEXTBOOK_CONTACT_EMAIL for the copyright-page contact.
+The default is the neutral placeholder contact@example.com.
 """
 
 from __future__ import annotations
 
+import argparse
 import functools
+import os
 import re
 import subprocess
 import sys
@@ -233,7 +238,7 @@ def build_template() -> str:
         '    publisher, except in the case of brief quotations embodied in critical\n'
         '    reviews and certain other noncommercial uses permitted by copyright law.\\\n'
         '    \\\n'
-        '    For permissions, contact: #link("mailto:tony@zturnsgo.com")[tony\\@zturnsgo.com]',
+        '    For permissions, contact: #link("mailto:" + contact-email, contact-email)',
         'Series: Z Turns Chinese — Amazon KDP Edition\\\n'
         '    Author: Tony Sheng\\\n'
         '    Website: zturnsgo.com\\\n'
@@ -246,19 +251,21 @@ def build_template() -> str:
         '    This edition is designed for adult learners of Chinese and created from real-world\n'
         '    teaching scenarios, practical speaking patterns, and cultural notes for English-speaking learners.\\\n'
         '    \\\n'
-        '    For permissions or bulk licensing, contact: #link("mailto:tony@zturnsgo.com")[tony\\@zturnsgo.com]',
+        '    For permissions or bulk licensing, contact: #link("mailto:" + contact-email, contact-email)',
     )
     return template
 
 
-def compile_typ(typ_src: str, out_pdf: Path) -> None:
+def compile_typ(typ_src: str, out_pdf: Path, contact_email: str | None = None) -> None:
+    if contact_email is None:
+        contact_email = os.environ.get("TEXTBOOK_CONTACT_EMAIL", "contact@example.com")
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.NamedTemporaryFile("w", suffix=".typ", dir=str(V3_DIR / "templates"), delete=False, encoding="utf-8") as f:
         f.write(typ_src)
         tmp_path = Path(f.name)
     try:
         result = subprocess.run(
-            ["typst", "compile", str(tmp_path), str(out_pdf)],
+            ["typst", "compile", str(tmp_path), str(out_pdf), "--input", f"contact-email={contact_email}"],
             capture_output=True,
             text=True,
         )
@@ -544,7 +551,13 @@ def build_typst_source(meta: KdpBookMeta, md_path: Path) -> str:
     )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--contact-email",
+        help="Copyright-page contact (default: TEXTBOOK_CONTACT_EMAIL or contact@example.com)",
+    )
+    args = parser.parse_args(argv)
     # Fail on a missing config or template before writing anything.
     _pipeline()
     _kdp_template()
@@ -565,7 +578,7 @@ def main() -> None:
         md_path.write_text(md_text, encoding="utf-8")
 
         typ_src = build_typst_source(meta, md_path)
-        compile_typ(typ_src, pdf_path)
+        compile_typ(typ_src, pdf_path, contact_email=args.contact_email)
 
         generated.append(f"- {md_path}")
         generated.append(f"- {pdf_path}")
